@@ -1,0 +1,12 @@
+mysql-connector-python
+PyMySQL
+aiomysql
+SQLAlchemy
+python-dotenv
+requests
+boto3
+paramiko<4.0.0
+sshtunnel
+pytest
+pytest-html
+pytest-json-report
