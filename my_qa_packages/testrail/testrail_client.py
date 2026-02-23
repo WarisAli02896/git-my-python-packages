@@ -70,9 +70,9 @@ class TestRailClient:
         except Exception as e:
             error_msg = str(e)
             if "401" in error_msg or "Unauthorized" in error_msg:
-                print(f"\n❌ Authentication failed!")
+                print(f"\nAuthentication failed!")
                 print(f"Please verify:")
-                print(f"  1. Your API key is correct (get it from TestRail → My Settings → API)")
+                print(f"  1. Your API key is correct (get it from TestRail > My Settings > API)")
                 print(f"  2. Your username/email is correct: {self.username}")
                 print(f"  3. Your base URL is correct: {self.base_url}")
                 print(f"\nNote: API keys are case-sensitive and should not have extra spaces")
@@ -183,14 +183,12 @@ class TestRailClient:
         Returns:
             Created test run dictionary or None
         """
-        # Get project by name
         project = self.get_project_by_name(project_name)
         if not project:
             raise ValueError(f"Project '{project_name}' not found")
         
         project_id = project.get('id')
         
-        # Prepare test run data
         run_data = {
             'case_ids': test_case_ids
         }
@@ -253,13 +251,7 @@ class TestRailClient:
         Returns:
             Updated test result dictionary or None
         """
-        # First, get the test results for this case in the run
         try:
-            # Get all test results for the run
-            results_endpoint = f'/index.php?/api/v2/get_results_for_case/{run_id}/{case_id}'
-            existing_results = self._make_request('GET', results_endpoint)
-            
-            # Prepare result data
             result_data = {
                 'status_id': status
             }
@@ -276,7 +268,6 @@ class TestRailClient:
             if version:
                 result_data['version'] = version
             
-            # Add result to the test run
             add_result_endpoint = f'/index.php?/api/v2/add_result_for_case/{run_id}/{case_id}'
             result = self._make_request('POST', add_result_endpoint, result_data)
             
@@ -319,7 +310,7 @@ class TestRailClient:
             List of updated test result dictionaries
         """
         try:
-            endpoint = f'/index.php?/api/v2/add_results/{run_id}'
+            endpoint = f'/index.php?/api/v2/add_results_for_cases/{run_id}'
             updated_results = self._make_request('POST', endpoint, {'results': results})
             
             if updated_results:
@@ -331,6 +322,75 @@ class TestRailClient:
             print(f"Error updating test case statuses in batch: {e}")
             raise
     
+    def get_sections(self, project_id: int, suite_id: int = None) -> List[Dict]:
+        """Get all sections in a project/suite."""
+        try:
+            endpoint = f'/index.php?/api/v2/get_sections/{project_id}'
+            if suite_id:
+                endpoint += f'&suite_id={suite_id}'
+            response = self._make_request('GET', endpoint)
+            if isinstance(response, dict) and 'sections' in response:
+                return response.get('sections', [])
+            elif isinstance(response, list):
+                return response
+            return []
+        except Exception as e:
+            print(f"Error getting sections: {e}")
+            raise
+
+    def add_section(self, project_id: int, name: str, suite_id: int = None, parent_id: int = None) -> Optional[Dict]:
+        """Create a new section in a project."""
+        try:
+            data = {'name': name}
+            if suite_id:
+                data['suite_id'] = suite_id
+            if parent_id:
+                data['parent_id'] = parent_id
+            endpoint = f'/index.php?/api/v2/add_section/{project_id}'
+            section = self._make_request('POST', endpoint, data)
+            if section:
+                print(f"Section '{name}' created with ID: {section.get('id')}")
+            return section
+        except Exception as e:
+            print(f"Error creating section: {e}")
+            raise
+
+    def get_cases(self, project_id: int, suite_id: int = None) -> List[Dict]:
+        """Get all test cases in a project/suite."""
+        try:
+            endpoint = f'/index.php?/api/v2/get_cases/{project_id}'
+            if suite_id:
+                endpoint += f'&suite_id={suite_id}'
+            response = self._make_request('GET', endpoint)
+            if isinstance(response, dict) and 'cases' in response:
+                return response.get('cases', [])
+            elif isinstance(response, list):
+                return response
+            return []
+        except Exception as e:
+            print(f"Error getting cases: {e}")
+            raise
+
+    def add_case(self, section_id: int, title: str, **kwargs) -> Optional[Dict]:
+        """
+        Create a new test case in a section.
+
+        Args:
+            section_id: Section ID to add the case to
+            title: Test case title
+            **kwargs: Additional fields (e.g., type_id, priority_id, refs)
+        """
+        try:
+            data = {'title': title, **kwargs}
+            endpoint = f'/index.php?/api/v2/add_case/{section_id}'
+            case = self._make_request('POST', endpoint, data)
+            if case:
+                print(f"Case '{title}' created with ID: C{case.get('id')}")
+            return case
+        except Exception as e:
+            print(f"Error creating case: {e}")
+            raise
+
     def get_test_run(self, run_id: int) -> Optional[Dict]:
         """
         Get test run information.
@@ -366,4 +426,3 @@ class TestRailClient:
         except Exception as e:
             print(f"Error getting tests in run: {e}")
             raise
-
