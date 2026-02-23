@@ -13,7 +13,7 @@ def insert_data(engine, table_name: str, data: dict, schema: str = None):
         schema: Database schema name (optional)
     
     Returns:
-        True if successful
+        Inserted row's primary key ID, or None on failure
     """
     try:
         metadata = MetaData(schema=schema)
@@ -21,13 +21,14 @@ def insert_data(engine, table_name: str, data: dict, schema: str = None):
 
         with engine.connect() as connection:
             stmt = insert(table).values(data)
-            connection.execute(stmt)
+            result = connection.execute(stmt)
             connection.commit()
-            print(f"Data inserted successfully into table '{table_name}'")
-            return True
+            inserted_id = result.inserted_primary_key[0]
+            print(f"Data inserted successfully into table '{table_name}' with id: {inserted_id}")
+            return inserted_id
     except SQLAlchemyError as e:
         print(f"Error inserting data: {e}")
-        return False
+        return None
 
 
 def get_all(engine, table_name: str, schema: str = None):
